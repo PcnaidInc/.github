@@ -1,0 +1,21 @@
+name: Shared Datadog Catalog Updater
+on:
+  workflow_call: # This makes it reusable
+    secrets:
+      DD_API_KEY:
+        required: true
+      DD_APP_KEY:
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Datadog Service Catalog Metadata Provider
+        uses: arcxp/datadog-service-catalog-metadata-provider@v2.3.2
+        with:
+          # You can define defaults here
+          service-definition: service.datadog.yaml 
+          datadog-key: ${{ secrets.DD_API_KEY }}
+          datadog-app-key: ${{ secrets.DD_APP_KEY }}
