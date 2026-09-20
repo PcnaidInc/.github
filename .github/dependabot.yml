@@ -1,0 +1,91 @@
+# Pcnaid Inc — org-wide Dependabot policy. Identical in every repo; nothing here is repo-specific.
+#
+# An ecosystem with no manifest in this repo is a no-op: Dependabot logs "no files found" and opens
+# nothing. So one file is safe everywhere, including repos created later.
+#
+# POLICY, and the reasoning, so nobody re-derives it:
+#  - MAJOR version updates are IGNORED. A major is a breaking change by definition and needs a human
+#    decision, not a bot PR that sits red forever. Security advisories are unaffected — Dependabot
+#    security updates ignore this file's `ignore` rules and still open, which is the behaviour we want.
+#  - minor + patch are GROUPED into one PR per ecosystem. 12 separate bumps became 1 review.
+#  - weekly, not daily: daily produces more PRs than anyone closes.
+#  - open-pull-requests-limit is deliberately low. The bottleneck is review, not proposal rate.
+version: 2
+updates:
+  # Applies to EVERY repo with workflows — the only truly universal ecosystem.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday" }
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "github-actions", "automerge-candidate"]
+    commit-message: { prefix: "ci" }
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "npm"
+    directories: ["/", "/web", "/app", "/apps/*", "/packages/*", "/frontend", "/backend"]
+    schedule: { interval: "weekly", day: "monday" }
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "npm", "automerge-candidate"]
+    commit-message: { prefix: "deps", prefix-development: "deps-dev" }
+    groups:
+      npm-development:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+      npm-production:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "pip"
+    directories: ["/", "/backend", "/api", "/src"]
+    schedule: { interval: "weekly", day: "monday" }
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "python", "automerge-candidate"]
+    commit-message: { prefix: "deps" }
+    groups:
+      pip-minor-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "docker"
+    directories: ["/", "/docker", "/backend", "/web"]
+    schedule: { interval: "weekly", day: "monday" }
+    open-pull-requests-limit: 2
+    labels: ["dependencies", "docker"]
+    commit-message: { prefix: "build" }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # iOS/macOS apps. No-op in every other repo.
+  - package-ecosystem: "swift"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday" }
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "swift"]
+    commit-message: { prefix: "deps" }
+    groups:
+      swift-minor-patch:
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule: { interval: "weekly", day: "monday" }
+    open-pull-requests-limit: 2
+    labels: ["dependencies", "android"]
+    commit-message: { prefix: "deps" }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
