@@ -2,7 +2,8 @@
 // App Home screenshot lane (PCNSF-144). Runs ONLY inside the reusable workflow
 // PcnaidInc/.github/.github/workflows/app-home-screens.yml, called by each Shopify app repo. It signs in to the dev store's admin as a vaulted
 // e2e tester, opens every App Home route inside the real admin iframe, and saves full-page
-// screenshots at desktop (1440) and phone (390) width.
+// screenshots at desktop (1440) and phone (390) width. The phone profile is mobile EMULATION
+// (iPhone 14 descriptor in Chromium), not a real device.
 //
 // Credentials come from repo secrets through the environment. The password is typed by this
 // job only. No agent enters it, and it is never logged, traced or written to an artifact.
@@ -155,6 +156,8 @@ async function signIn(browser) {
 }
 
 // Opens one App Home page in the admin iframe and saves a full-page capture of it.
+const APP_ERROR = /Application Error|Unexpected Server Error|Internal Server Error|^\s*404\b|Page not found|There's no page at this address/i;
+
 async function captureRoute(page, route, profile) {
   const t0 = Date.now();
   await page.goto(`${ADMIN}/apps/${clientId}${route}`, { waitUntil: 'domcontentloaded' });
@@ -162,8 +165,12 @@ async function captureRoute(page, route, profile) {
   await iframe.waitFor({ timeout: 45_000 });
   const frame = await (await iframe.elementHandle()).contentFrame();
   await frame.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
-  await frame.locator('s-page, [data-polaris-layout], main, body').first().waitFor({ timeout: 30_000 });
+  // A page counts only when App Home content renders; a bare <body> is also what an error
+  // boundary returns, so it is not a readiness signal.
+  await frame.locator('s-page, [data-polaris-layout], main').first().waitFor({ timeout: 30_000 });
   const ms = Date.now() - t0;
+  const text = (await frame.locator('body').innerText().catch(() => '')).slice(0, 2000);
+  if (APP_ERROR.test(text)) throw new Error(`APP-ERROR page rendered: ${text.split('\n')[0].slice(0, 120)}`);
   // The admin scrolls its own container, not the document, so grow the viewport to the
   // app's full height before a full-page capture.
   const h = await frame.evaluate(() => document.documentElement.scrollHeight);
