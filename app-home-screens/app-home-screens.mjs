@@ -215,7 +215,17 @@ const PROFILES = [
 const browser = await launch();
 let exit = 0;
 try {
-  const state = await signIn(browser);
+  const state = await signIn(browser).catch(async (e) => {
+    // Every sign-in failure leaves evidence: where the page was and what it showed.
+    for (const ctx of browser.contexts()) {
+      for (const p of ctx.pages()) {
+        const u = new URL(p.url());
+        log(`sign-in failed at ${u.host}${u.pathname} title="${await p.title().catch(() => '')}"`);
+        await shot(p, 'login-failed').catch(() => {});
+      }
+    }
+    throw e;
+  });
   for (const p of PROFILES) await capture(browser, state, p);
   if (results.some((r) => !r.ok || r.overflowX)) exit = 1;
 } catch (e) {
