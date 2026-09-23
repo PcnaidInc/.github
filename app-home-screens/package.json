@@ -1,0 +1,9 @@
+{
+  "name": "app-home-screens",
+  "private": true,
+  "type": "module",
+  "description": "Signed-in full-page App Home screenshots for the Shopify app fleet (PCNSF-144).",
+  "dependencies": {
+    "playwright": "1.63.0"
+  }
+}
