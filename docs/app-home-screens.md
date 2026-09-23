@@ -54,5 +54,10 @@ caller passes them in.
 - **Sign-in**: only the job types the password. It is never logged, traced or uploaded. A
   new-device code is read from the org test inbox. A captcha stops the run with
   `login-bot-check.png`, and the job never tries to solve it.
+- **Phone profile** is Chromium mobile emulation (iPhone 14 descriptor: 390 px, touch, mobile UA),
+  not a real device. With `grid: browserstack` it is still emulation, on a recorded remote desktop
+  Chrome. Real iOS Safari is a separate follow-up.
+- **Error pages**: a page passes only when `s-page`, `main` or a Polaris layout renders, and fails
+  if the frame shows an application error, 404 or "no page at this address".
 - **Result**: an artifact with PNGs, `summary.md` and `results.json`, plus a step summary. The run
   fails when a page does not load or scrolls horizontally.
