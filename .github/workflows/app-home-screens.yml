@@ -1,0 +1,94 @@
+name: App Home screens (reusable)
+
+# PCNSF-144. Called by each Shopify app repo. Signs in to the dev store admin as the e2e tester
+# and saves full-page App Home screenshots at desktop (1440) and phone (390) width.
+# Docs: docs/app-home-screens.md. Callers must trigger it from workflow_dispatch only, never
+# from pull_request, so an untrusted branch can never reach the tester secret.
+
+on:
+  workflow_call:
+    inputs:
+      grid:
+        description: 'local (runner Chromium) or browserstack (recorded remote Chrome)'
+        type: string
+        default: local
+      routes:
+        description: 'Comma-separated App Home paths; blank = derive from routes_dir, else the App Home root'
+        type: string
+        default: ''
+      routes_dir:
+        description: 'Remix flat-routes directory, relative to the repo root'
+        type: string
+        default: app/routes
+      app_toml:
+        description: 'Path to the shopify.app*.toml that holds client_id (blank = auto)'
+        type: string
+        default: ''
+      # This repo is public: store, tester and inbox identifiers come from the private caller.
+      store:
+        description: 'Store handle in admin.shopify.com/store/<handle>'
+        type: string
+        required: true
+      tester_email:
+        type: string
+        required: true
+      inbox_url:
+        description: 'Org test inbox API, for the new-device code (blank = no code reader)'
+        type: string
+        default: ''
+    secrets:
+      SHOPIFY_E2E_TESTER_PASSWORD:
+        required: true
+      ORG_INBOX_API_TOKEN:
+        required: false
+      BROWSERSTACK_USERNAME:
+        required: false
+      BROWSERSTACK_ACCESS_KEY:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: app
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: PcnaidInc/.github
+          path: tool
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund --prefix tool/app-home-screens
+      - if: inputs.grid == 'local'
+        run: npx --prefix tool/app-home-screens playwright install --with-deps chromium
+      - name: Capture
+        run: node tool/app-home-screens/app-home-screens.mjs
+        env:
+          APP_DIR: app
+          ROUTES_DIR: ${{ inputs.routes_dir }}
+          APP_TOML: ${{ inputs.app_toml }}
+          ROUTES: ${{ inputs.routes }}
+          GRID: ${{ inputs.grid }}
+          SHOP_STORE_HANDLE: ${{ inputs.store }}
+          OUT_DIR: app-home-screens
+          ORG_INBOX_URL: ${{ inputs.inbox_url }}
+          SHOPIFY_E2E_TESTER_EMAIL: ${{ inputs.tester_email }}
+          SHOPIFY_E2E_TESTER_PASSWORD: ${{ secrets.SHOPIFY_E2E_TESTER_PASSWORD }}
+          ORG_INBOX_API_TOKEN: ${{ secrets.ORG_INBOX_API_TOKEN }}
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+      - name: Summary
+        if: always()
+        run: cat app-home-screens/summary.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: app-home-screens-${{ github.run_id }}
+          path: app-home-screens/
+          retention-days: 14
