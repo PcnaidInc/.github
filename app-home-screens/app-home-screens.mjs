@@ -137,6 +137,12 @@ async function signIn(browser) {
   const page = await ctx.newPage();
   const started = new Date().toISOString();
   await page.goto(`${ADMIN}`, { waitUntil: 'domcontentloaded' });
+  // Cloudflare's human check ("Just a moment...") in front of the admin is reported, never solved.
+  await page.waitForTimeout(5_000);
+  if (/just a moment/i.test(await page.title())) {
+    await shot(page, 'login-bot-check');
+    throw new Error('LOGIN-BOT-CHECK: Cloudflare human verification in front of the admin; not solved by design');
+  }
   await page.locator('input[name="account[email]"], input[type="email"]').first().fill(EMAIL);
   await page.keyboard.press('Enter');
   const pw = page.locator('input[name="account[password]"], input[type="password"]').first();
