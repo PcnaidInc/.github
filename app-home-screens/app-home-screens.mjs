@@ -45,11 +45,12 @@ if (!clientId) throw new Error('client_id not found in the app toml');
 const ADMIN = `https://admin.shopify.com/store/${STORE}`;
 
 // Routes come from the Remix flat-route files, so a new page is covered without editing this.
-// Skipped: dynamic segments ($id), pathless escapes (foo_), downloads (*.export) and billing
-// return pages that need a charge id.
-export function appHomeRoutes(files) {
+// Skipped: dynamic segments ($id), pathless escapes (foo_), downloads (*.export), billing
+// return pages that need a charge id, and action-only files with no page (no default export).
+export function appHomeRoutes(files, hasPage = () => true) {
   return files
     .filter((f) => /^app(\.|\.tsx$)/.test(f) && /\.(tsx|jsx)$/.test(f))
+    .filter((f) => hasPage(f))
     .map((f) => f.replace(/\.(tsx|jsx)$/, ''))
     .filter((r) => r !== 'app')
     .filter((r) => !/\$|_\.|\.export$|\.confirmed$/.test(r))
@@ -57,9 +58,17 @@ export function appHomeRoutes(files) {
     .sort();
 }
 
-// No Remix routes dir (Workers/React apps): capture the App Home root unless `routes` is given.
+const hasDefaultExport = (src) => /export\s+default|export\s*\{[^}]*\bdefault\b/.test(src);
+
+// No Remix routes dir (Workers/React apps): capture the App Home root, then every page the app's
+// own admin nav links to, unless `routes` is given.
 const routesDir = join(APP_DIR, ROUTES_DIR);
-const routes = ONLY.length ? ONLY : existsSync(routesDir) ? appHomeRoutes(readdirSync(routesDir)) : ['/'];
+const DISCOVER = !ONLY.length && !existsSync(routesDir);
+const routes = ONLY.length
+  ? ONLY
+  : DISCOVER
+    ? ['/']
+    : appHomeRoutes(readdirSync(routesDir), (f) => hasDefaultExport(readFileSync(join(routesDir, f), 'utf8')));
 mkdirSync(OUT, { recursive: true });
 const results = [];
 const log = (...a) => console.log('[app-home-screens]', ...a);
@@ -172,8 +181,15 @@ async function captureRoute(page, route, profile) {
   const frame = await (await iframe.elementHandle()).contentFrame();
   await frame.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {});
   // A page counts only when App Home content renders; a bare <body> is also what an error
-  // boundary returns, so it is not a readiness signal.
-  await frame.locator('s-page, [data-polaris-layout], main').first().waitFor({ timeout: 30_000 });
+  // boundary returns, so it is not a readiness signal. Polaris pages are ready on s-page or a
+  // Polaris layout (short empty states included); plain-HTML apps need a heading plus real text.
+  await frame.waitForFunction(
+    () =>
+      !!document.querySelector('s-page, [data-polaris-layout]') ||
+      (!!document.querySelector('main, h1, ui-title-bar') && (document.body.innerText || '').trim().length > 40),
+    null,
+    { timeout: 30_000 },
+  );
   const ms = Date.now() - t0;
   const text = (await frame.locator('body').innerText().catch(() => '')).slice(0, 2000);
   if (APP_ERROR.test(text)) throw new Error(`APP-ERROR page rendered: ${text.split('\n')[0].slice(0, 120)}`);
@@ -190,6 +206,26 @@ async function captureRoute(page, route, profile) {
   return { ms, overflowX, file };
 }
 
+// The app's own sub-nav in the admin sidebar: links under the handle the admin resolved
+// client_id to. Other apps' links in the same sidebar are ignored.
+async function navLinks(page) {
+  return page
+    .evaluate(() => {
+      const m = /\/apps\/([^/?#]+)/.exec(location.pathname);
+      if (!m) return [];
+      const pre = `/apps/${m[1]}`;
+      return [...document.querySelectorAll('a[href]')]
+        .map((a) => new URL(a.getAttribute('href'), location.href).pathname)
+        .filter((p) => p.includes(`${pre}/`))
+        .map((p) => p.slice(p.indexOf(pre) + pre.length));
+    })
+    .catch(() => []);
+}
+function discoverNav(paths) {
+  for (const p of paths) if (p && p !== '/' && !routes.includes(p)) routes.push(p);
+  log('discovered from app nav:', routes.slice(1).join(' ') || '(none)');
+}
+
 async function capture(browser, state, profile) {
   const ctx = await browser.newContext({ ...profile.options, storageState: state });
   const page = await ctx.newPage();
@@ -201,6 +237,7 @@ async function capture(browser, state, profile) {
       row.error = String(e.message || e).split('\n')[0].slice(0, 300);
       await shot(page, `${profile.name}${route.replace(/\//g, '_')}-error`).catch(() => {});
     }
+    if (DISCOVER && route === '/' && profile === PROFILES[0]) discoverNav(await navLinks(page));
     results.push(row);
     log(profile.name, route, row.ok ? `ok ${row.ms}ms${row.overflowX ? ' OVERFLOW-X' : ''}` : `FAIL ${row.error}`);
   }
