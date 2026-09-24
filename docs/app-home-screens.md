@@ -45,8 +45,9 @@ caller passes them in.
 ## Behaviour
 
 - **Pages**: `routes` if given. Otherwise the Remix flat-route files in `routes_dir`, skipping
-  `$id`, `foo_`, `*.export` and `*.confirmed`. With no routes directory, it captures the App Home
-  root.
+  `$id`, `foo_`, `*.export`, `*.confirmed` and action-only files with no default export (they have
+  no page). With no routes directory, it captures the App Home root, then every page the app's own
+  admin sidebar links to. Links to other apps in the same sidebar are ignored.
 - **URL**: `admin.shopify.com/store/<store>/apps/<client_id><path>`. The `client_id` comes from
   the app toml, so the app handle is never guessed.
 - **Full page**: the admin scrolls its own container, so the job grows the viewport to the
@@ -57,7 +58,13 @@ caller passes them in.
 - **Phone profile** is Chromium mobile emulation (iPhone 14 descriptor: 390 px, touch, mobile UA),
   not a real device. With `grid: browserstack` it is still emulation, on a recorded remote desktop
   Chrome. Real iOS Safari is a separate follow-up.
-- **Error pages**: a page passes only when `s-page`, `main` or a Polaris layout renders, and fails
-  if the frame shows an application error, 404 or "no page at this address".
+- **Error pages**: a page passes when `s-page` or a Polaris layout renders, which covers short
+  empty states. A plain-HTML app passes when `main`, `h1` or `ui-title-bar` renders with more than
+  40 characters of text. A page fails if the frame shows an application error, 404 or "no page at
+  this address".
+- **Where it can sign in**: Shopify's login shows a Cloudflare human check to GitHub-hosted runners
+  and to cloud browser grids (BrowserStack and LambdaTest, measured 2026-09-23). The job stops
+  there with `LOGIN-BOT-CHECK`. A run that has to sign in needs a runner on a network Shopify
+  trusts.
 - **Result**: an artifact with PNGs, `summary.md` and `results.json`, plus a step summary. The run
   fails when a page does not load or scrolls horizontally.
