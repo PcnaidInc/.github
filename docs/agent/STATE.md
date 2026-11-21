@@ -1,4 +1,4 @@
-# org-github STATE — d377/d378: Dashboard #299/#285/#291, CKW #120, d378 Logto PRs #230/#63 in flight; detail in ~/hq/teamlead/docs/agent/STATE.md (TL1 session e2a8d4a7) [11:35Z]
+# org-github STATE — d377/d378: d378 Logto PRs HH #230, DealerOS #63, LegalHub #135, Skybridge #47 + d377 CKW #120, Dash lanes; detail in ~/hq/teamlead/docs/agent/STATE.md (TL1 session 10476df8) [12:55Z]
 
 ## Decisions
 - Dashboard #299 (#289): head 4ebde774 pre-charge cross-shop refusal + post-charge backstop; control-plane green on the earlier head; Sentry thread answered. No merge before COO clearance and green on 4ebde774.
