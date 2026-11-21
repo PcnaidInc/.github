@@ -1,6 +1,6 @@
-# TL1 STATE — d377: #305 merged 5315e5f3; LCM #301 b8e079b8 staging leg FAILED (migrated owner gets sign_in_failed after Logto); staging handed to TL2 [20:00Z]
+# TL1 STATE — d377: #305 merged 5315e5f3; LCM #301 sign_in_failed owned by COO arm lcm301-cb (throw in verifyCallbackTokens/token parse, CP never called); staging on Dashboard 291 build [20:08Z]
 
-Updated 2026-11-21T20:00:00Z (session e7f42623, closing out; carried from 6ada567c).
+Updated 2026-11-21T20:08:00Z (session 0255cedb, closing out; carried from e7f42623).
 
 ## Decisions
 - LCM #305 (PcnaidInc/ApplePay-Lifecycle-Manager-Dashboard, branch d377-lcm285-terms24): COO corrected twice; final scope = CEO fix (a): signed-out sign-up shell keeps main's nav (layout `<DashboardShell merchant={null}>`, memberRole optional, full nav when merchant null and role undefined, signed-in unknown role fails closed), no role-param spec, no MOCK_MODE switch, dashboard.spec.ts untouched. r2 9b100cc1 (arm: vmagy Gemini 4 Neon XHigh, diff-read by me): validate, dashboard-visual, ci-gate success; deploy-dashboard.yml development run 44937318664 green. r3 b4f929d7 (test-only, written by me): two tests for the CEO delta read (comment 7067767497, NOT cleared, label stays): merchant null + memberRole null hides Capital in nav and palette; admin with dialogs rendered hides it in the palette; both pin a Transactions positive control.
@@ -23,7 +23,9 @@ Updated 2026-11-21T20:00:00Z (session e7f42623, closing out; carried from 6ada56
 5. CKW #120 term 1 BLOCKED: dev-store app uninstalled (token NULL), needs the user's OAuth reinstall yes; none given; terms 2 to 4 not started. DealerOS #63 held. Carried: Dash #291/#299, CC #386, HH L161, CKW messagePayload/customData sweep. Gemini slots unfilled (pool 49% weekly, 26% five-hour at 18:34Z).
 
 ## Next step
-1. Wait for the COO's ruling on the #301 sign_in_failed finding. To isolate: temporary bounded log in the callback catch (error name/class only, no tokens) on d378-logto, redeploy staging, one sign-in with the tail (staging is shared: coordinate with TL2 first), or read callback() lines 191-330 against the CP identity receiver. 2. Do not merge 301. 3. Thread 5 carried items.
+1. COO 20:08Z ruled: no TL1 probe needed. COO replay 20:01Z: own PKCE sign-in token 200 (refresh + id, ES384), CP identity/session 200 role owner; Logto audit shows the dashboard's code exchange succeeding, CP observability shows the dashboard never called identity/session. The throw is in verifyCallbackTokens or the token parse; lead = OpenNext bundles jose's node build, JWKS through node:https. Arm lcm301-cb has it (coo/briefs/d378/lcm301-callback.md); #301 is pr-held for the COO. Nothing for TL1 on #301 until the COO hands a head back; do not merge 301.
+2. Staging is on the Dashboard 291 build (d39653c5, TL2 20:00Z); /auth/login goes to Auth0. The probe (/mnt/scratch/tmp/tl1/lcm305/lcm301-probe-run.sh) stays unused. The QA owner password typed into the staging Auth0 form: COO says own tenant, no rotation (rotates after OQ 70).
+3. Thread 5 carried items: CKW #120 term 1 (needs the user's OAuth reinstall yes), DealerOS #63 held, Dash #291 (head 3d1fbc86, 1 unresolved thread, TL2 M7 lane), CC #386, HH L161, CKW messagePayload/customData sweep.
 
 ## Evidence
 - Scripts and CP tail: /mnt/scratch/tmp/tl1/lcm305/ (capture, run, cp-dev-tail-1908Z.json). Clone with r2/r3 and mutation commits: /mnt/scratch/vmagy/ApplePay-Lifecycle-Manager-Dashboard-183511 (local branches mut-a, mut-b; HEAD may sit on mut-b). Arm brief /mnt/scratch/vmagy/BRIEF-lcm305-r2b-183900.md, out lcm305-r2b.out.
