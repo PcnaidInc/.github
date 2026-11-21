@@ -11,9 +11,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Datadog Service Catalog Metadata Provider
-        uses: arcxp/datadog-service-catalog-metadata-provider@v2.3.2
+        uses: arcxp/datadog-service-catalog-metadata-provider@e909e3743d666eb3de9a54dbbe2f1251257ac93f # v2.3.2
         with:
           # You can define defaults here
           service-definition: service.datadog.yaml 
